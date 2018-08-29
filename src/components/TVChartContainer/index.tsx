@@ -28,6 +28,9 @@ export interface ChartContainerProps {
 }
 
 export interface ChartContainerState {
+	loaded: boolean,
+	time: string,
+	[key: string]: any,
 }
 
 const intervalMap = {
@@ -54,6 +57,14 @@ const intervalTimeMap = {
 }
 
 export class TVChartContainer extends React.PureComponent<Partial<ChartContainerProps>, ChartContainerState> {
+	// cons
+	constructor (props) {
+		super(props);
+		this.state = {
+			loaded: false,
+			time: '5min',
+		}
+	}
 	public static defaultProps: ChartContainerProps = {
 		symbol: 'AAPL',
 		interval: 'D',
@@ -74,6 +85,7 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 	private interval: number | any;
 	private socket: any;
 	private cacheData: any = {};
+	// private loaded = 
 	[key: string]: any;
 
 
@@ -89,10 +101,15 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 		this.socket.onMessage('open', this.getKlineData);
 		this.socket.onMessage('message', this.onMessage);
 
+		const height = document.documentElement.clientHeight - 30;
+		const width = document.documentElement.clientWidth;
+
 		const widgetOptions: ChartingLibraryWidgetOptions = {
 			symbol: this.symbol,
 			interval: this.interval,
-			fullscreen: true,
+			height,
+			width,
+			// fullscreen: true,
 			// preset: "mobile",
 			container_id: this.props.containerId as ChartingLibraryWidgetOptions['container_id'],
 			datafeed: this.datafeeds,
@@ -100,12 +117,13 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 			timezone: 'Asia/Shanghai',
 			locale: 'zh',
 			debug: false,
+			custom_css_url: '../../src/coinxp.css',
 			// favorites: {
 			// 	intervals: ['1', '5', '15', '30', '60', '1D', '2D', '3D', '1W', '1M'],
 			// 	chartTypes: ["Area", "Candles"]
 			// },
 			overrides: {
-				"paneProperties.background": "#222222",
+				"paneProperties.background": "#181B2A",
 				"paneProperties.vertGridProperties.color": "#454545",
 				"paneProperties.horzGridProperties.color": "#454545",
 				"symbolWatermarkProperties.transparency": 90,
@@ -113,7 +131,8 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 				'scalesProperties.fontSize': 13,
 				'paneProperties.legendProperties.showLegend': false,
 				"symbolWatermarkProperties.color": "rgba(0, 0, 0, 0.00)",
-				"volumePaneSize": "large",
+				"volumePaneSize": "small",
+				"scalesProperties.showRightScale": false,
 			},
 			disabled_features: [
 				'countdown',
@@ -133,7 +152,6 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 				"volume_force_overlay",
 				"left_toolbar",
 				'use_localstorage_for_settings',
-				// 'adaptive_logo',
 				'go_to_date',
 				'timezone_menu',
 				'timeframes_toolbar',
@@ -141,64 +159,77 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 			],
 			enabled_features: [
 				'header_widget',
+				'adaptive_logo',
 			]
 		};
 
 		const tvWidget = new widget(widgetOptions);
 		this.tvWidget = tvWidget;
 
-		tvWidget.onChartReady(function () {
-			tvWidget.chart().createStudy('MA Cross', false, false, [30, 120]);
-
-			const _self = this;
-			let chart = tvWidget.chart();
-			const btnList = [
-				{
-					label: '1min',
-					resolution: "1",
-					chartType: 1
-				},
-				{
-
-					label: '5min',
-					resolution: "5",
-				},
-				{
-					label: '15min',
-					resolution: "15",
-				},
-				{
-					label: '30min',
-					resolution: "30",
-				},
-				{
-					label: '1h',
-					resolution: "60",
-				},
-				{
-					class: 'selected',
-					label: '日线',
-					resolution: "1D"
-				},
-			];
-			btnList.forEach(function (item) {
-				let button = tvWidget.createButton({
-					align: "left"
-				});
-
-				button.attr('class', "button " + item.class).attr("data-chart-type", item.chartType === undefined ? 8 : item.chartType).on('click', function (e) {
-					let chartType = + button.attr("data-chart-type");
-					if (chart.resolution() !== item.resolution) {
-						chart.setResolution(item.resolution, () => { });
-					}
-					if (chart.chartType() !== chartType) {
-						chart.setChartType(chartType);
-					}
-				})
-				button.html(item.label);
-				button.css('background-color', '#222222');
-				button.css('color', 'white');
+		tvWidget.onChartReady( () => {
+			this.setState({loaded: true});
+			tvWidget.chart().createStudy('Moving Average', true, false, [5, "close", 0], null, {
+				"Plot.color": "#684A95",
 			});
+			tvWidget.chart().createStudy('Moving Average', true, false, [10, "close", 0], null, {
+				"Plot.color": "#5677A4",
+			});
+			tvWidget.chart().createStudy('Moving Average', true, false, [30, "close", 0], null, {
+				"Plot.color": "#417D57",
+			});
+			tvWidget.chart().createStudy('Moving Average', true, false, [60, "close", 0], null, {
+				"Plot.color": "#782C6C",
+			});
+
+			// const _self = this;
+			// let chart = tvWidget.chart();
+			// const btnList = [
+			// 	{
+			// 		label: '1min',
+			// 		resolution: "1",
+			// 		chartType: 1
+			// 	},
+			// 	{
+
+			// 		label: '5min',
+			// 		resolution: "5",
+			// 	},
+			// 	{
+			// 		label: '15min',
+			// 		resolution: "15",
+			// 	},
+			// 	{
+			// 		label: '30min',
+			// 		resolution: "30",
+			// 	},
+			// 	{
+			// 		label: '1h',
+			// 		resolution: "60",
+			// 	},
+			// 	{
+			// 		class: 'selected',
+			// 		label: '日线',
+			// 		resolution: "1D"
+			// 	},
+			// ];
+			// btnList.forEach(function (item) {
+			// 	let button = tvWidget.createButton({
+			// 		align: "left"
+			// 	});
+
+			// 	button.attr('class', "button " + item.class).attr("data-chart-type", item.chartType === undefined ? 8 : item.chartType).on('click', function (e) {
+			// 		let chartType = + button.attr("data-chart-type");
+			// 		if (chart.resolution() !== item.resolution) {
+			// 			chart.setResolution(item.resolution, () => { });
+			// 		}
+			// 		if (chart.chartType() !== chartType) {
+			// 			chart.setChartType(chartType);
+			// 		}
+			// 	})
+			// 	button.html(item.label);
+			// 	button.css('background-color', 'white');
+			// 	button.css('color', '#222222');
+			// });
 		})
 
 	}
@@ -211,11 +242,98 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 	}
 
 	public render(): JSX.Element {
+		const {loaded, time} = this.state;
+		const styles = {
+			interval: 'test',
+		}
+		const intervals = [
+			{ name: '1min', value: '1' },
+			{ name: '5min', value: '5' },
+			// { name: '15min', value: '15' },
+			// { name: '30min', value: '30' },
+			{ name: '1H', value: '60' },
+			{ name: '1D', value: '1D' },
+			{ name: '1Week', value: '1week' },
+			// { name: '1Mon', value: '1mon' }
+		  ]
 		return (
-			<div
-				id={this.props.containerId}
-				className={'TVChartContainer'}
-			/>
+			<div>
+				{
+					loaded ? null : <div style={{
+						width: '100vw',
+						height: '100vh',
+						lineHeight: '100vh',
+						textAlign: 'center',
+					}}>loading...</div>
+				}
+				<div className='utilsbuttons'>
+				{
+					loaded ? (
+						<>
+                        <ul className={'interval'} >
+                          <li
+                            key={0}
+                            onClick={() => {
+                              this.setState({
+                                time: 'realtime'
+                              })
+                              this.tvWidget.chart().setChartType(3);
+                            }}
+                            className={time === 'realtime' ? 'active' : null }
+                          >
+                            分时
+                          </li >
+                          {
+                            intervals.map((item, index) => (
+                              <li
+                                key={index + 1}
+                                onClick={() => {
+                                  this.setState({
+                                    time: item.name
+                                  })
+                                  this.tvWidget.chart().setChartType(1);
+                                  this.tvWidget.chart().setResolution(item.value, () => {
+                                  })
+                                }}
+                                className={time === item.name ? 'active': null}
+                              >
+                                {item.name}
+                              </li >
+                            ))
+                          }
+                        </ul >
+                        {/* <ul className={''} >
+                          <li className={''} onClick={() => {
+                            this.tvWidget.chart().executeActionById('chartProperties')
+                          }} >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="-2.4 120.9 600 600" width="17"
+                                 height="17" >
+                              <path
+                                d="M594 473.5V368.8h-76c-5.7-23.8-15.2-46.4-27.5-66.4l53.8-53.8-73.9-73.9-53.8 53.4c-20.6-12.8-42.7-21.8-66.4-27.5v-75.9H245.5v75.9c-23.8 5.7-46.4 15.2-66.4 27.5l-53.8-53.8-73.9 73.9 53.4 53.8C92 322.6 83 344.7 77.3 368.4h-76V473h75.9c5.7 23.8 15.2 46.4 27.5 66.4L51 593.3l73.9 73.9 53.8-53.4c20.6 12.8 42.7 21.8 66.4 27.5v75.9h104.6v-75.9c23.8-5.7 46.4-15.2 66.4-27.5l53.8 53.8 73.9-73.9-53.4-53.8c12.8-20.6 21.8-42.7 27.5-66.4H594zm-296.4 69.7c-67.3 0-122.3-54.6-122.3-122.3 0-67.3 54.6-122.3 122.3-122.3 67.3 0 122.3 54.6 122.3 122.3-.4 67.4-54.9 122.3-122.3 122.3z"
+                                fill='#6A7286' />
+                            </svg >
+                          </li >
+                          <li className={''} onClick={() => {
+                            this.tvWidget && this.tvWidget.chart().executeActionById('insertIndicator')
+                          }} >
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 17 17" width="17" height="17" >
+                              <path
+                                d="M16 0a1 1 0 0 0-1 1 1 1 0 0 0 .127.484L13.017 5A1 1 0 0 0 13 5a1 1 0 0 0-.258.035L10.965 3.26A1 1 0 0 0 11 3a1 1 0 0 0-1-1 1 1 0 0 0-1 1 1 1 0 0 0 .082.393L7.12 6.008a1 1 0 0 0-.12-.01 1 1 0 0 0-.44.104l-1.564-1.04A1 1 0 0 0 5 4.998a1 1 0 0 0-1-1 1 1 0 0 0-1 1 1 1 0 0 0 .002.066l-1.56 1.04A1 1 0 0 0 1 5.998a1 1 0 0 0-1 1 1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-.002-.064l1.56-1.04A1 1 0 0 0 4 6a1 1 0 0 0 .44-.103l1.564 1.04A1 1 0 0 0 6 7a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-.082-.39l1.965-2.62A1 1 0 0 0 10 4a1 1 0 0 0 .258-.035l1.777 1.777A1 1 0 0 0 12 6a1 1 0 0 0 1 1 1 1 0 0 0 1-1 1 1 0 0 0-.127-.482L15.983 2A1 1 0 0 0 16 2a1 1 0 0 0 1-1 1 1 0 0 0-1-1zm-1 5v10h2V5h-2zM9 7v8h2V7H9zM3 9v6h2V9H3zm9 1v5h2v-5h-2zM0 11v4h2v-4H0zm6 0v4h2v-4H6z"
+                                fill='#6A7286' />
+                            </svg >
+                          </li >
+                        </ul > */}
+                      </>
+					) : null
+				}
+				</div>
+
+				<div
+					id={this.props.containerId}
+					className={'TVChartContainer'}
+				/>
+			</div>
+			
 		);
 	}
 
@@ -232,7 +350,6 @@ export class TVChartContainer extends React.PureComponent<Partial<ChartContainer
 		let symbol = this.getSymbolName();
 		let interval = this.interval;
 		let to = Math.floor(Date.now() / 1000);
-		console.log('getKline...????');
 		this.sendMessage({
 			"req": `market.${symbol}.kline.${intervalMap[interval]}`,
 			id: Math.floor(Math.random() * 1000),
